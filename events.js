@@ -22,7 +22,7 @@ let timeline_events = [
   { age: 220 * MILLION, title: "Mammals", img: "repenomamus.jpg" },
   { age: 240 * MILLION, title: "Context: Dinosaurs" },
   { age: 300 * MILLION, title: "Reptiles", img: "hylonomus.jpg" },
-  { age: 335 * MILLION, title: "Pangaea Forms" },
+  { age: 335 * MILLION, title: "Context: Pangaea Forms" },
   { age: 395 * MILLION, title: "Tetrapodia", img: "panderichthys.jpg" },
   { age: 400 * MILLION, title: "Context: Trees" },
   { age: 420 * MILLION, title: "Context: Sharks" },
