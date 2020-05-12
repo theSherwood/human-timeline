@@ -25,8 +25,12 @@
       const POPOVER_WIDTH = 250;
       const POPOVER_HEIGHT = 200;
 
+      // Prepare data
       let step_num = 0;
-      let sorted_events = timeline_events;
+      let sorted_events = timeline_events.map((event) => {
+        event.age = Math.round(event.age);
+        return event;
+      });
       sorted_events.sort((a, b) => a.age - b.age);
       events = sorted_events.slice(0, step_num);
 
@@ -51,8 +55,9 @@
 
       function update() {
         events = sorted_events.slice(0, step_num);
-        max = (events[step_num - 1] && events[step_num - 1].age) || max;
+        max = (events[step_num - 1] && events[step_num - 1].age) || 1;
         age = get_age(max);
+        console.log(max);
         number_of_lines = max.toString().length;
         render();
       }
@@ -102,9 +107,13 @@
       }
 
       function render_events() {
+        if (!events.length) {
+          hide_popover();
+          return;
+        }
         for (let i = 0; i < events.length; i++) {
           if (i === events.length - 1) {
-            render_event(events[i], FOCUSED_EVENT_COLOR);
+            render_focused_event(events[i]);
           } else {
             render_event(events[i], EVENT_COLOR);
           }
@@ -119,6 +128,12 @@
           EVENT_TAG_W,
           EVENT_TAG_H
         );
+      }
+
+      function render_focused_event(event) {
+        event.focus = true;
+        render_event(event, FOCUSED_EVENT_COLOR);
+        show_popover(event.pos.x, event.pos.y, event);
       }
 
       function render() {
@@ -144,6 +159,28 @@
       let popover = document.getElementById("popover");
       popover.style.width = POPOVER_WIDTH + "px";
       popover.style.height = POPOVER_HEIGHT + "px";
+
+      function show_popover(x, y, event) {
+        popover.innerHTML = `
+            <h3>${event.title}</h3>
+            <div>${add_commas(event.age)} ya</div>
+          `;
+
+        popover.style.left =
+          x + POPOVER_WIDTH + MARGIN <= body.offsetWidth
+            ? x + "px"
+            : x - POPOVER_WIDTH + "px";
+        popover.style.top =
+          y + POPOVER_HEIGHT + MARGIN <= body.offsetHeight
+            ? y + "px"
+            : y - POPOVER_HEIGHT + "px";
+
+        popover.style.display = "grid";
+      }
+
+      function hide_popover() {
+        popover.style.display = "none";
+      }
 
       /* https://stackoverflow.com/questions/27078285/simple-throttle-in-js#27078401 */
       function throttle(callback, limit) {
@@ -198,25 +235,11 @@
             }
           });
           if (!focused_event) {
-            popover.style.display = "none";
+            hide_popover();
             return;
           }
 
-          popover.innerHTML = `
-            <h3>${focused_event.title}</h3>
-            <div>${add_commas(focused_event.age)} years ago</div>
-          `;
-
-          popover.style.left =
-            x + POPOVER_WIDTH + MARGIN <= body.offsetWidth
-              ? x + "px"
-              : x - POPOVER_WIDTH + "px";
-          popover.style.top =
-            y + POPOVER_HEIGHT + MARGIN <= body.offsetHeight
-              ? y + "px"
-              : y - POPOVER_HEIGHT + "px";
-
-          popover.style.display = "grid";
+          show_popover(x, y, focused_event);
         }, 16)
       );
 
