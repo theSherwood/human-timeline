@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="index.css" />
+    <title>Document</title>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="popover" style="display: none; position: absolute;"></div>
+
+    <script src="events.js"></script>
+    <script>
+      const MAX_AGE = 4.54 * BILLION;
+      const BACKGROUND_COLOR = "#f7f6f3";
+      const LINE_COLOR = "#268ab5";
+      const EVENT_COLOR = "#2eaadc";
+      const FOCUSED_EVENT_COLOR = "#eb5757";
+      const TEXT_COLOR = "#999999";
+      const EVENT_TAG_H = 24;
+      const EVENT_TAG_W = 8;
+      const MARGIN = 32;
+      const EPSILON = 0.1;
+      const POPOVER_WIDTH = 250;
+      const POPOVER_HEIGHT = 200;
+
+      let step_num = 0;
+      let sorted_events = timeline_events;
+      sorted_events.sort((a, b) => a.age - b.age);
+      events = sorted_events.slice(0, step_num);
+
+      let max = (events[step_num - 1] && events[step_num - 1].age) || 1;
+      let age;
+      let number_of_lines = 1;
+
+      function round(n) {
+        let count = 0;
+
+        while (n > 1) {
+          count++;
+          n = Math.ceil(n / 10);
+        }
+
+        return 10 ** count;
+      }
+
+      function get_age(n) {
+        return Math.min(round(n), MAX_AGE);
+      }
+
+      function update() {
+        events = sorted_events.slice(0, step_num);
+        max = (events[step_num - 1] && events[step_num - 1].age) || max;
+        age = get_age(max);
+        number_of_lines = max.toString().length;
+        render();
+      }
+
+      let canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");
+
+      function render_background() {
+        ctx.fillStyle = BACKGROUND_COLOR;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function render_lines(h_unit, h, w) {
+        ctx.fillStyle = LINE_COLOR;
+        for (let i = h_unit; i < h; i += h_unit) {
+          ctx.fillRect(MARGIN, i, w, 2);
+        }
+      }
+
+      function render_scale(h_unit, t_unit, w) {
+        ctx.font = "18px Arial";
+        ctx.fillStyle = TEXT_COLOR;
+        let i;
+        for (i = 1; i < number_of_lines + 1; i++) {
+          ctx.fillText(
+            add_commas(Math.round(t_unit * (number_of_lines - i + 1))) + " ya",
+            MARGIN - 5,
+            i * h_unit - EVENT_TAG_H
+          );
+        }
+        ctx.fillText("Now", w, (i - 1) * h_unit + EVENT_TAG_H * 1.5);
+      }
+
+      function populate_pos_data(t_unit, h_unit, w) {
+        for (let event of events) {
+          let event_age = event.age ? event.age - EPSILON : 0;
+          let line = number_of_lines - Math.trunc(event_age / t_unit);
+          let mod = event_age % t_unit;
+          let pos = {
+            x: MARGIN + w - (mod / t_unit) * w,
+            y: line * h_unit,
+          };
+
+          event.pos = pos;
+          event.focus = false;
+        }
+      }
+
+      function render_events() {
+        for (let i = 0; i < events.length; i++) {
+          if (i === events.length - 1) {
+            render_event(events[i], FOCUSED_EVENT_COLOR);
+          } else {
+            render_event(events[i], EVENT_COLOR);
+          }
+        }
+      }
+
+      function render_event(event, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(
+          event.pos.x - EVENT_TAG_W / 2,
+          event.pos.y - EVENT_TAG_H / 2 + 1,
+          EVENT_TAG_W,
+          EVENT_TAG_H
+        );
+      }
+
+      function render() {
+        // Stretch canvas
+        let w = (canvas.width = document.body.clientWidth) - MARGIN * 2;
+        let h = (canvas.height = document.body.clientHeight);
+        let h_unit = h / (number_of_lines + 1);
+        let t_unit = age / number_of_lines;
+
+        render_background();
+        render_lines(h_unit, h, w);
+        render_scale(h_unit, t_unit, w);
+
+        populate_pos_data(t_unit, h_unit, w);
+        render_events();
+      }
+
+      window.onresize = () => {
+        render();
+      };
+
+      let body = document.body;
+      let popover = document.getElementById("popover");
+      popover.style.width = POPOVER_WIDTH + "px";
+      popover.style.height = POPOVER_HEIGHT + "px";
+
+      /* https://stackoverflow.com/questions/27078285/simple-throttle-in-js#27078401 */
+      function throttle(callback, limit) {
+        var wait = false;
+        return function () {
+          if (!wait) {
+            callback.apply(null, arguments);
+            wait = true;
+            setTimeout(function () {
+              wait = false;
+            }, limit);
+          }
+        };
+      }
+
+      /* https://jsfiddle.net/k07x1fuL/ */
+      function add_commas(n) {
+        let nStr = n + "";
+        x = nStr.split(".");
+        x1 = x[0];
+        x2 = x.length > 1 ? "." + x[1] : "";
+        var rgx = /(\d+)(\d{3})/;
+        while (rgx.test(x1)) {
+          x1 = x1.replace(rgx, "$1" + "," + "$2");
+        }
+        return x1 + x2;
+      }
+
+      window.addEventListener(
+        "mousemove",
+        throttle((e) => {
+          let x = e.clientX;
+          let y = e.clientY;
+
+          let focused_event;
+
+          events.forEach((event) => {
+            if (
+              x >= event.pos.x - EVENT_TAG_W / 2 &&
+              x <= event.pos.x + EVENT_TAG_W / 2 &&
+              y >= event.pos.y - EVENT_TAG_H / 2 &&
+              y <= event.pos.y + EVENT_TAG_H / 2
+            ) {
+              focused_event = event;
+              if (!event.focus) {
+                render_event(event, FOCUSED_EVENT_COLOR);
+                event.focus = true;
+              }
+            } else if (event.focus) {
+              event.focus = false;
+              render_event(event, EVENT_COLOR);
+            }
+          });
+          if (!focused_event) {
+            popover.style.display = "none";
+            return;
+          }
+
+          popover.innerHTML = `
+            <h3>${focused_event.title}</h3>
+            <div>${add_commas(focused_event.age)} years ago</div>
+          `;
+
+          popover.style.left =
+            x + POPOVER_WIDTH + MARGIN <= body.offsetWidth
+              ? x + "px"
+              : x - POPOVER_WIDTH + "px";
+          popover.style.top =
+            y + POPOVER_HEIGHT + MARGIN <= body.offsetHeight
+              ? y + "px"
+              : y - POPOVER_HEIGHT + "px";
+
+          popover.style.display = "grid";
+        }, 16)
+      );
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight") {
+          step_num = Math.min(step_num + 1, sorted_events.length);
+          update();
+        } else if (e.key === "ArrowLeft") {
+          step_num = Math.max(step_num - 1, 0);
+          update();
+        }
+      });
+
+      update();
+    </script>
+  </body>
+</html>
