@@ -58,6 +58,7 @@
         max = (events[step_num - 1] && events[step_num - 1].age) || 1;
         age = get_age(max);
         number_of_lines = max.toString().length;
+        hide_popover();
         render();
       }
 
@@ -173,19 +174,17 @@
           `;
         }
 
-        hide_popover();
-
         setTimeout(() => {
           popover.style.left =
             x +
-              Math.max(popover.offsetWidth, MIN_POPOVER_WIDTH + 100) +
+              Math.max(popover.offsetWidth, MIN_POPOVER_WIDTH + 150) +
               MARGIN <=
             body.offsetWidth
               ? x + "px"
               : x - popover.offsetWidth + "px";
           popover.style.top =
             y +
-              Math.max(popover.offsetHeight, MIN_POPOVER_HEIGHT + 100) +
+              Math.max(popover.offsetHeight, MIN_POPOVER_HEIGHT + 150) +
               MARGIN <=
             body.offsetHeight
               ? y + "px"
