@@ -8,7 +8,7 @@
   </head>
   <body>
     <canvas id="canvas"></canvas>
-    <div id="popover" style="display: none; position: absolute;"></div>
+    <div id="popover" style="visibility: hidden; position: absolute;"></div>
 
     <script src="events.js"></script>
     <script>
@@ -22,8 +22,8 @@
       const EVENT_TAG_W = 8;
       const MARGIN = 32;
       const EPSILON = 0.1;
-      const POPOVER_WIDTH = 250;
-      const POPOVER_HEIGHT = 200;
+      const MIN_POPOVER_WIDTH = 250;
+      const MIN_POPOVER_HEIGHT = 200;
 
       // Prepare data
       let step_num = 0;
@@ -57,7 +57,6 @@
         events = sorted_events.slice(0, step_num);
         max = (events[step_num - 1] && events[step_num - 1].age) || 1;
         age = get_age(max);
-        console.log(max);
         number_of_lines = max.toString().length;
         render();
       }
@@ -157,29 +156,47 @@
 
       let body = document.body;
       let popover = document.getElementById("popover");
-      popover.style.width = POPOVER_WIDTH + "px";
-      popover.style.height = POPOVER_HEIGHT + "px";
+      popover.style.minWidth = MIN_POPOVER_WIDTH + "px";
+      popover.style.minHeight = MIN_POPOVER_HEIGHT + "px";
 
       function show_popover(x, y, event) {
         popover.innerHTML = `
             <h3>${event.title}</h3>
             <div>${add_commas(event.age)} ya</div>
+            `;
+        if (event.img) {
+          popover.innerHTML += `
+            <figure>
+              <img src="img/${event.img}" />
+              <figcaption><em>${event.img}</em></figcaption>
+            </figure>
           `;
+        }
 
-        popover.style.left =
-          x + POPOVER_WIDTH + MARGIN <= body.offsetWidth
-            ? x + "px"
-            : x - POPOVER_WIDTH + "px";
-        popover.style.top =
-          y + POPOVER_HEIGHT + MARGIN <= body.offsetHeight
-            ? y + "px"
-            : y - POPOVER_HEIGHT + "px";
+        hide_popover();
 
-        popover.style.display = "grid";
+        setTimeout(() => {
+          popover.style.left =
+            x +
+              Math.max(popover.offsetWidth, MIN_POPOVER_WIDTH + 100) +
+              MARGIN <=
+            body.offsetWidth
+              ? x + "px"
+              : x - popover.offsetWidth + "px";
+          popover.style.top =
+            y +
+              Math.max(popover.offsetHeight, MIN_POPOVER_HEIGHT + 100) +
+              MARGIN <=
+            body.offsetHeight
+              ? y + "px"
+              : y - popover.offsetHeight + "px";
+
+          popover.style.visibility = "visible";
+        }, 10);
       }
 
       function hide_popover() {
-        popover.style.display = "none";
+        popover.style.visibility = "hidden";
       }
 
       /* https://stackoverflow.com/questions/27078285/simple-throttle-in-js#27078401 */
